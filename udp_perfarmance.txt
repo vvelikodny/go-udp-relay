@@ -1,0 +1,8 @@
+UDP million packets:
+https://blog.cloudflare.com/how-to-receive-a-million-packets/
+
+The SO_REUSEPORT socket option:
+https://lwn.net/Articles/542629/
+
+Brings SO_REUSEPORT into your Go serve:
+https://github.com/kavu/go_reuseport
