@@ -2,25 +2,14 @@
 // Client to test UDP relay
 //
 
-package main
+package client
 
 import (
+    "errors"
     "fmt"
     "net"
-    "os"
-    "os/signal"
-    "syscall"
-    "flag"
     "time"
-    "github.com/vvelikodny/udprelay/server"
 )
-
-func CheckError(err error) {
-    if err != nil {
-        fmt.Println("Error: ", err)
-        os.Exit(0)
-    }
-}
 
 const (
     BUFF_SIZE = 512
@@ -31,75 +20,58 @@ const (
     DFLT_SERVER_PORT = 7777
 )
 
-func main() {
-    var (
-        id = flag.String("id", "default", "id of the client")
-        serverHost = flag.String("server-host", DFLT_SERVER_HOST, "Outgoing stream host")
-        serverPort = flag.Int("server-port", DFLT_SERVER_PORT, "Outgoing stream port")
-        help = flag.Bool("h", false, "Show help")
-    )
+type client struct {
+    id   string
+    Conn *net.UDPConn
+}
 
-    flag.Parse()
+func NewClient(id string) *client {
+    return &client{id: id}
+}
 
-    if *help {
-        flag.Usage()
-        os.Exit(0)
+func (c *client) Start(localAddr *net.UDPAddr, serverAddr *net.UDPAddr) error {
+    conn, err := net.DialUDP("udp", localAddr, serverAddr)
+    if err != nil {
+        return  err
     }
 
-    LocalAddr, err := net.ResolveUDPAddr("udp", ":0")
-    CheckError(err)
+    c.Conn = conn
 
-    ServerAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%v:%v", *serverHost, *serverPort))
-    CheckError(err)
+    return nil
+}
 
-    client := server.NewClient(*id)
-    client.Start(LocalAddr, ServerAddr)
-    defer client.Disconnect()
+func (c *client) Connect() error {
+    return c.Send([]byte(fmt.Sprintf("CONNECT %v", c.id)))
+}
 
-    c := make(chan os.Signal, 1)
-    signal.Notify(c, os.Interrupt)
-    signal.Notify(c, syscall.SIGTERM)
+func (c *client) Alive() error {
+    return c.Send([]byte(fmt.Sprintf("ALIVE %v", c.id)))
+}
 
-    client.Connect()
-    defer client.Disconnect()
-
-    // Catch signals from os to exit
-    go func() {
-        <-c
-
-        err = client.Disconnect()
-        CheckError(err)
-
-        client.Conn.Close()
-
-        os.Exit(1)
-    }()
-
-    err = client.Connect()
-    CheckError(err)
-
-    // Alive status sender
-    go func() {
-        for {
-            err := client.Alive()
-            CheckError(err)
-
-            time.Sleep(ALIVE_CHECK_TIME)
-        }
-    }()
-
-    // Read stream from server
-    buf := make([]byte, BUFF_SIZE)
-
-    for {
-        _, _, err := client.Conn.ReadFromUDP(buf)
-        if err != nil {
-            fmt.Println("Error: ", err)
-            os.Exit(0)
-        }
-
-        fmt.Println("> " + string(buf[0:5]))
+func (c *client) Disconnect() error {
+    if c.Conn == nil {
+        return errors.New("Start before Disconnect!")
     }
 
-    os.Exit(0)
+    defer c.Conn.Close()
+
+    err := c.Send([]byte(fmt.Sprintf("DISCONNECT %v", c.id)))
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (c *client) Send(data []byte) error {
+    if c.Conn == nil {
+        return errors.New("Start before send command!")
+    }
+
+    _, err := c.Conn.Write(data)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }

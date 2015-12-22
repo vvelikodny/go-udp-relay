@@ -15,17 +15,22 @@ func CheckError(err error) {
 
 const BUF_SIZE int = 512
 
-type Server struct {
+type server struct {
     d *dispatcher
 }
 
-func (s *Server) Run(incomingPort int, outgoingPort int) {
+func New() server {
+    return  server{}
+}
+
+func (s *server) Run(incomingPort int, outgoingPort int) {
     inputStreamAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", incomingPort))
     CheckError(err)
 
     outputStreamAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", outgoingPort))
     CheckError(err)
 
+    // TODO refactor in & out channels on receiver & dispatcher
     s.d = NewDispatcher()
 
     // In-coming stream reader

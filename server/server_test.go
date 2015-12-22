@@ -7,6 +7,7 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
     "time"
+    "github.com/vvelikodny/udprelay/client"
 )
 
 const (
@@ -20,16 +21,12 @@ func TestServerStart(t *testing.T) {
 }
 
 var _ = Describe("Server", func() {
-    server := &Server{}
+    server := New()
 
-    client1 := NewClient("client1")
-    client2 := NewClient("client2")
+    client1 := client.NewClient("client1")
+    client2 := client.NewClient("client2")
 
     go server.Run(IN_COMING_PORT, OUT_COMING_PORT)
-
-    BeforeEach(func() {
-
-    })
 
     It("Should have zero subscribers on start", func() {
         Expect(server.d.subscribers).Should(HaveLen(0))
