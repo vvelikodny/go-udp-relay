@@ -1,5 +1,3 @@
-# Test Task
-
 ## Overview
 
 A Streamer is a server accepting a stream of UDP packets on one port (`incoming port`) and allowing multiple clients to connect on a different port (`outgoing port`) and receive that stream.
@@ -21,7 +19,3 @@ The server listens for client connections on a port defined by a command line ar
 `ALIVE id` - notify server that connection is alive. failing to send this for 30 seconds will cause the server to disconnect that client. usually a client will send this every 10 seconds.
 
 (`id` is a an arbitrary identifier per connection)
-
-## Guidelines
-
-Code must be submitted with appropriate tests. these should cover cases of more than one connected client.
